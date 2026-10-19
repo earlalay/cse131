@@ -3,13 +3,14 @@
 # 2. Assignment Name:
 #      Lab 03 : Calendar Program
 # 3. Assignment Description:
-#      -describe what this program is meant to do-
+#      This program takes a month and a year (after 1752) from the 
+#      user and prints the calendar for that month to the user.
 # 4. What was the hardest part? Be as specific as possible.
-#      -a paragraph or two about how the assignment went for you-
+#      The hardest part for me was being careful when encountering all
+#      of the common off-by-1 errors. I mostly encountered it when
+#      setting ranges.
 # 5. How long did it take for you to complete the assignment?
-#      -total time in hours including reading the assignment and submitting the program-
-
-# 31 minutes
+#      110 minutes
 
 
 def main():
@@ -17,6 +18,8 @@ def main():
     month = get_month()
     year = get_year()
 
+    # Get the number of days in the month, accounting for 
+    # Februarys in leap years.
     if month != 2:
         days_in_month = get_days_in_month(month)
     else:
@@ -25,18 +28,27 @@ def main():
     # Create a list to hold True or False for each year between
     # the starting and ending years being leap years.
     is_leap_year_list = []
+
     # Asserts is_leap_year_list is the type 'list'.
     assert type(is_leap_year_list) == list
     # Check if each year between the starting and ending years
     # are leap years and add that date to is_leap_year_list
     # by using the is_leap_year function.
-
-
-    # what is the range for this????
-
-    for year in range(start_year + 1, year - 1):
+    for year in range(1753, year + 1):
         leap_year_check = is_leap_year(year)
         is_leap_year_list.append(leap_year_check)
+
+    # Get the number of days in the year prior to the indicated month.
+    # Do this by looping through the range of months prior.
+    days_in_months_prior = 0
+    for month in range (1, month + 1):
+        days_in_months_prior += get_days_in_month(month, year)
+
+    # The offset is to tell the program how many spaces to put before
+    # printing the first day in the calendar.
+    offset = compute_offset(month, year)
+
+    display_table(offset, days_in_month)
 
 
 def get_month():
@@ -60,7 +72,7 @@ def get_month():
             # If the month is not in the range 1-12, tell the user
             # that it isn't a valid month and have them try again.
             if month <= 0 or month > 12:
-                print('Invalid month.')
+                print('Month out of range.')
                 valid_month = False
         # If the user enters invalid characters, tell them to
         # only enter numbers and have them try again.
@@ -94,7 +106,7 @@ def get_year():
             # If the year <= 1752, turn it invalid and
             # tell the user, because this program can't handle that.
             if year <= 1752:
-                print('Please enter a higher year.')
+                print('Please enter a later year.')
                 valid_year = False
         # If the user enters invalid characters, tell them to
         # only enter numbers and have them try again.
@@ -143,7 +155,7 @@ def get_days_in_month(month, year=None):
     assert len(day_per_month) == 12
 
     # Access the days in the designated month via the dictionary.
-    days_in_month = day_per_month[month - 1]
+    days_in_month = day_per_month[month]
 
     # If the month if February and the year is a leap year,
     # add an extra day.
@@ -203,16 +215,41 @@ def get_days_in_years(leap_year_TF_list):
     return days_in_years
 
 
+def compute_offset(month, year):
+    # Count the numb of days in the years prior to the specified year.
+    # Do this by looping through the years and adding each set of days.
+    num_days = 0
+    for year_count in range(1753, year):
+        if is_leap_year(year_count):
+            num_days += 366
+        else:
+            num_days += 365
+
+    # Count the number of days in the months prior to the specified
+    # month. Do this by looping through the months and adding each
+    # set of days to the days in the years prior.
+    for month_count in range(1, month):
+        num_days += get_days_in_month(month_count, year)
+
+    # The first day we are calculating from is a Monday, so we
+    # add 1 to the number of days before getting the remainder
+    # from dividing by 7.
+    return (num_days + 1) % 7
+
+
 def display_table(dow, num_days):
-    '''Display a calendar table'''
+    # Confirm that the data passed into the function are ints.
     assert(type(num_days) == type(dow) == type(0))
+    # Confirm that the offset passed in is between 1 and 6.
     assert(0 <= dow <= 6)
+    # Confirm that the number of days passed in for the month are
+    # between 28 and 31.
     assert(28 <= num_days <= 31)
 
-    # Display a nice table header
+    # Display a table header containing the 7 days of the week.
     print("  Su  Mo  Tu  We  Th  Fr  Sa")
 
-    # Indent for the first day of the week
+    # Indent for the first day of the week.
     for indent in range(dow):
         print("    ", end='')
 
@@ -228,9 +265,6 @@ def display_table(dow, num_days):
     if dow % 7 != 0:
         print("") # newline
 
-
-# Output
-display_table(3, 31)
 
 # Run the program when this file is run.
 if __name__ == "__main__":
