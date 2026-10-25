@@ -7,10 +7,9 @@
 # 4. What was the hardest part? Be as specific as possible.
 #      Just managing how many moving parts there are. Lots can and did go wrong.
 # 5. How long did it take for you to complete the assignment?
-#      325 minutes
+#      Draft - 325 minutes
+#      Final version - 110 minutes
 
-# 57 minutes
-# 4:48
 
 import json
 from pathlib import Path
@@ -43,14 +42,26 @@ def main():
             indexed_coord = get_indexes_from_coord(user_move)
             row = indexed_coord[0]
             col = indexed_coord[1]
-            valid_number_value = False
-            while not valid_number_value:
-                number_value = get_num_entry()
-                if not is_num_available(board, row, col, number_value):
-                    print("That number cannot go there.")
-                else:
-                    board[row][col] = number_value
-                    valid_number_value = True
+
+            hint_wanted = wants_hint()
+            if hint_wanted:
+                valid_num_list = compute_valid_num_list(board, row, col)
+                give_hint(user_move, valid_num_list)
+            else:
+                valid_number_value = False
+                while not valid_number_value:
+                    number_value = get_num_entry()
+                    if is_num_available(board, row, col, number_value) == "num_in_row":
+                        print("That number is already in that row.")
+                    elif is_num_available(board, row, col, number_value) == "num_in_col":
+                        print("That number is already in that column.")
+                    elif is_num_available(board, row, col, number_value) == "num_in_cell":
+                        print("That number is already in that cell.")
+                    elif is_num_available(board, row, col, number_value) == "num_available":
+                        board[row][col] = number_value
+                        valid_number_value = True
+                    else:
+                        print("Something went wrong.")
 
 
 def get_starting_filename():
@@ -121,20 +132,67 @@ def display_board(board):
         row_count += 1
 
 
-def give_hint(coordinate):
+def wants_hint():
     """
-    Provide the user with a list of possible numbers for the
-    chosen coordinate (could include incorrect answers).
+    If the user selects a coordinate, this function asks if they want
+    a hint or if they want to enter a number. If they want a hint,
+    it returns True. If they want to enter a number, it returns False.
     """
+    valid_input = False
+    while not valid_input:
+        user_move = input("If you want a hint for your coordinate, type 'H'. " + 
+                        "If you want to enter a number, type 'N': ")
+        if user_move.lower() != 'h' and user_move.lower() != 'n':
+            print("Invalid input.")
+        else:
+            valid_input = True
+
+    if user_move.lower() == 'h':
+        return True
+    elif user_move.lower() == 'n':
+        return False
 
 
-def compute_valid_num_list(coordinate):
+def give_hint(coordinate, valid_num_list):
+    """
+    Provide the user with a list of possible numbers for
+    the chosen coordinate's row and column (could include
+    incorrect answers).
+    """
+    print(f"The available numbers for {coordinate} are {str(valid_num_list)[1:-1]}.")
+
+
+def compute_valid_num_list(board, target_row, target_col):
     """
     Create a list of possible numbers at the given coordinate. Do so
     by comparing the available numbers in the corresponding row,
     column, and 3x3 cell.
     """
+    valid_num_list = []
+    for num in range (1, 10):
+        col_counter = -1
+        cell_counter = -1
+        for col_num in board[target_row]:
+            row_counter = 0
+            if col_num == num:
+                row_counter += 1
+        if row_counter == 0:
+            for row_num in range(9):
+                col_counter = 0
+                if board[row_num][target_col] == num:
+                    col_counter += 1
+        if col_counter == 0:
+            cell_counter = 0
+            starting_row = target_row // 3 * 3
+            starting_col = target_col // 3 * 3
+            for row in range(starting_row, starting_row + 3):
+                for col in range(starting_col, starting_col + 3):
+                    if board[row][col] == num:
+                        cell_counter += 1
+        if cell_counter == 0:
+            valid_num_list.append(num)
 
+    return valid_num_list
 
 def get_num_entry():
     """
@@ -157,25 +215,25 @@ def get_num_entry():
 
 def is_num_available(board, target_row, target_col, number):
     """
-    Return a boolean indicating if the number the user would like
-    to enter does not occur in the corresponding row, column,
-    and 3x3 cell.
+    Check if the number the user would like to enter occurs in
+    the corresponding row, column, and 3x3 cell. Return a string
+    indicating if the number if available, or where it already is.
     """
-    # for col_num in board[target_row]:
-    #     if col_num == number:
-    #         return False
+    for col_num in board[target_row]:
+        if col_num == number:
+            return "num_in_row"
 
-    # for row_num in range(9):
-    #     if board[row_num][target_col] == number:
-    #         return False
+    for row_num in range(9):
+        if board[row_num][target_col] == number:
+            return "num_in_col"
 
-    # starting_row = target_row // 3 * 3
-    # starting_col = target_col // 3 * 3
-    # for row in range(starting_row, starting_row + 3):
-    #     for col in range(starting_col, starting_col + 3):
-    #         if board[row][col] == number:
-    #             return False
-    return True
+    starting_row = target_row // 3 * 3
+    starting_col = target_col // 3 * 3
+    for row in range(starting_row, starting_row + 3):
+        for col in range(starting_col, starting_col + 3):
+            if board[row][col] == number:
+                return "num_in_cell"
+    return "num_available"
 
 
 def is_valid_int(num_entry_input):
@@ -310,9 +368,10 @@ def save_game(board, filename):
     """
     Save the game board to a file with the provided filename.
     """
-    with open(filename, 'w') as file:
-        json.dump({"board": board}, file)
+    file_path = Path(__file__).parent / filename
 
+    with open(file_path, 'w') as file:
+        json.dump({"board": board}, file)
 
 
 def get_save_filename():
